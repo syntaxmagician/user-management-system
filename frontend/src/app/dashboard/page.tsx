@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { api, getApiError } from "@/lib/api";
 import type { User } from "@/types/api";
 import type { ApiListSuccess } from "@/types/api";
@@ -10,6 +10,7 @@ import { UserModal } from "@/components/UserModal";
 import { EmptyState } from "@/components/EmptyState";
 
 const LIMIT = 10;
+const SEARCH_DEBOUNCE_MS = 500; // 500ms debounce delay
 
 export default function DashboardPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<"create" | "edit" | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -45,19 +47,46 @@ export default function DashboardPage() {
     fetchUsers();
   }, [fetchUsers]);
 
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Clear any pending debounce
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
     setSearch(searchInput.trim());
     setPage(1);
   };
 
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
-    // Real-time search atau debounce bisa ditambahkan di sini
+    
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // If empty, search immediately
     if (!value.trim()) {
       setSearch("");
       setPage(1);
+      return;
     }
+
+    // Set up debounced search
+    debounceTimerRef.current = setTimeout(() => {
+      setSearch(value.trim());
+      setPage(1);
+    }, SEARCH_DEBOUNCE_MS);
   };
 
   const handleCreated = () => {
@@ -124,12 +153,6 @@ export default function DashboardPage() {
                 type="search"
                 value={searchInput}
                 onChange={(e) => handleSearchChange(e.target.value)}
-                onBlur={() => {
-                  if (searchInput.trim()) {
-                    setSearch(searchInput.trim());
-                    setPage(1);
-                  }
-                }}
                 placeholder="Search for a student by name or email"
                 className="w-full pl-9 pr-4 py-2 bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-sm"
               />
