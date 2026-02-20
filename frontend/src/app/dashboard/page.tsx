@@ -51,6 +51,15 @@ export default function DashboardPage() {
     setPage(1);
   };
 
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    // Real-time search atau debounce bisa ditambahkan di sini
+    if (!value.trim()) {
+      setSearch("");
+      setPage(1);
+    }
+  };
+
   const handleCreated = () => {
     setModal(null);
     fetchUsers();
@@ -73,30 +82,59 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-slate-800">Daftar User</h1>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2">
-            <input
-              type="search"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Cari nama atau email..."
-              className="px-3 py-2 border border-slate-300 rounded-lg w-48 sm:w-56 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-medium"
-            >
-              Cari
-            </button>
-          </form>
+        <h1 className="text-3xl font-bold text-gray-900">User List</h1>
+        <button
+          type="button"
+          onClick={() => setModal("create")}
+          className="px-6 py-2.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 font-medium transition-colors"
+        >
+          ADD USER
+        </button>
+      </div>
+
+      {/* Filter and Search - Single Container */}
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div className="flex items-center gap-4">
+          {/* Add Filter Dropdown */}
           <button
             type="button"
-            onClick={() => setModal("create")}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium"
+            onClick={() => {
+              // TODO: Implement filter dropdown
+            }}
+            className="flex items-center gap-2 text-gray-400 hover:text-gray-600 focus:outline-none transition-colors"
           >
-            Tambah User
+            <span className="text-sm">Add filter</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
           </button>
+
+          {/* Divider */}
+          <div className="w-px h-6 bg-gray-200"></div>
+
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none">
+              <svg className="w-5 h-5 text-gray-400 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <form onSubmit={handleSearchSubmit} className="w-full">
+              <input
+                type="search"
+                value={searchInput}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                onBlur={() => {
+                  if (searchInput.trim()) {
+                    setSearch(searchInput.trim());
+                    setPage(1);
+                  }
+                }}
+                placeholder="Search for a student by name or email"
+                className="w-full pl-9 pr-4 py-2 bg-transparent text-gray-700 placeholder-gray-400 focus:outline-none text-sm"
+              />
+            </form>
+          </div>
         </div>
       </div>
 
