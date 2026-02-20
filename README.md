@@ -286,10 +286,3 @@ user-management-system/
 └── README.md
 ```
 
-## Commit Strategy (Push Bertahap)
-
-Lihat [COMMIT_STRATEGY.md](./COMMIT_STRATEGY.md) untuk urutan commit yang disarankan agar history GitHub terlihat rapi dan profesional.
-
-## License
-
-MIT
