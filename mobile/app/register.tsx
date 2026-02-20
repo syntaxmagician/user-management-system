@@ -20,19 +20,21 @@ const { width } = Dimensions.get("window");
 const maxWidth = Math.min(400, width * 0.9);
 const PRIMARY_COLOR = "#6358DC";
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
+  const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  const handleLogin = async () => {
+  const handleRegister = async () => {
     setError(null);
-    if (!email.trim() || !password) {
-      setError("Email dan password wajib diisi.");
+    if (!firstName.trim() || !lastName.trim() || !email.trim() || !password) {
+      setError("Semua field wajib diisi.");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,10 +42,19 @@ export default function LoginScreen() {
       setError("Format email tidak valid.");
       return;
     }
+    if (password.length < 8) {
+      setError("Password minimal 8 karakter.");
+      return;
+    }
+    if (!agreeToTerms) {
+      setError("Anda harus menyetujui Terms of use dan Privacy Policy.");
+      return;
+    }
     setLoading(true);
     try {
-      const { data } = await api.post<ApiSuccess<AuthTokens>>("/auth/login", {
+      const { data } = await api.post<ApiSuccess<AuthTokens>>("/auth/register", {
         email: email.trim().toLowerCase(),
+        name: `${firstName.trim()} ${lastName.trim()}`.trim(),
         password,
       });
       if (data.success && data.data) {
@@ -51,9 +62,7 @@ export default function LoginScreen() {
         router.replace("/(app)");
       }
     } catch (err: unknown) {
-      const e = err as { _redirectLogin?: boolean };
-      if (e._redirectLogin) router.replace("/login");
-      else setError(getApiError(err));
+      setError(getApiError(err));
     } finally {
       setLoading(false);
     }
@@ -66,10 +75,7 @@ export default function LoginScreen() {
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <View style={[styles.card, { maxWidth }]}>
-          <View style={styles.header}>
-            <Text style={styles.welcomeText}>Welcome to</Text>
-            <Text style={styles.brandText}>BIGFORUM</Text>
-          </View>
+          <Text style={styles.title}>Create an account</Text>
 
           {error ? (
             <View style={styles.errorBox}>
@@ -77,34 +83,56 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          {/* Email Input */}
+          {/* First Name */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <View style={styles.inputWrapper}>
-              <View style={styles.iconContainer}>
-                <Text style={styles.icon}>✉</Text>
-              </View>
-              <TextInput
-                style={styles.input}
-                placeholder="example@gmail.com"
-                placeholderTextColor="#9ca3af"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                editable={!loading}
-              />
-            </View>
+            <Text style={styles.label}>First name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="First name"
+              placeholderTextColor="#9ca3af"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              autoComplete="given-name"
+              editable={!loading}
+            />
           </View>
 
-          {/* Password Input */}
+          {/* Last Name */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Last name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Last name"
+              placeholderTextColor="#9ca3af"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+              autoComplete="family-name"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Email */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor="#9ca3af"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              editable={!loading}
+            />
+          </View>
+
+          {/* Password */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
             <View style={styles.inputWrapper}>
-              <View style={styles.iconContainer}>
-                <Text style={styles.icon}>🔑</Text>
-              </View>
               <TextInput
                 style={[styles.input, styles.passwordInput]}
                 placeholder="Password"
@@ -112,7 +140,7 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoComplete="password"
+                autoComplete="new-password"
                 editable={!loading}
               />
               <TouchableOpacity
@@ -124,41 +152,44 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Remember me and Forgot Password */}
-          <View style={styles.optionsRow}>
+          {/* Terms Checkbox */}
+          <View style={styles.termsContainer}>
             <TouchableOpacity
               style={styles.checkboxContainer}
-              onPress={() => setRememberMe(!rememberMe)}
+              onPress={() => setAgreeToTerms(!agreeToTerms)}
             >
-              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+              <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+                {agreeToTerms && <Text style={styles.checkmark}>✓</Text>}
               </View>
-              <Text style={styles.checkboxLabel}>Remember me</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.forgotPassword}>Forgot Password?</Text>
-            </TouchableOpacity>
+            <View style={styles.termsTextContainer}>
+              <Text style={styles.termsText}>
+                By creating an account, I agree to our{" "}
+                <Text style={styles.termsLink}>Terms of use</Text> and{" "}
+                <Text style={styles.termsLink}>Privacy Policy</Text>.
+              </Text>
+            </View>
           </View>
 
-          {/* Login Button */}
+          {/* Register Button */}
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
+            onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>Register</Text>
             )}
           </TouchableOpacity>
 
-          {/* Register Link */}
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Don&apos;t have an account? </Text>
-            <Link href="/register" asChild>
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Text style={styles.loginText}>Sudah punya akun? </Text>
+            <Link href="/login" asChild>
               <TouchableOpacity>
-                <Text style={styles.registerLink}>Register</Text>
+                <Text style={styles.loginLink}>Masuk</Text>
               </TouchableOpacity>
             </Link>
           </View>
@@ -182,18 +213,11 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  header: {
-    marginBottom: 32,
-  },
-  welcomeText: {
-    fontSize: 14,
-    color: "#374151",
-    marginBottom: 4,
-  },
-  brandText: {
-    fontSize: 36,
+  title: {
+    fontSize: 28,
     fontWeight: "700",
-    color: PRIMARY_COLOR,
+    color: "#111827",
+    marginBottom: 32,
   },
   errorBox: {
     backgroundColor: "#fef2f2",
@@ -217,22 +241,14 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f3f4f6",
-    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#e5e7eb",
-  },
-  iconContainer: {
-    paddingLeft: 12,
-    paddingRight: 8,
-  },
-  icon: {
-    fontSize: 18,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
   },
   input: {
     flex: 1,
     paddingVertical: 12,
-    paddingRight: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
     color: "#111827",
   },
@@ -246,15 +262,14 @@ const styles = StyleSheet.create({
   eyeIconText: {
     fontSize: 18,
   },
-  optionsRow: {
+  termsContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
     marginBottom: 24,
   },
   checkboxContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    marginRight: 8,
+    marginTop: 2,
   },
   checkbox: {
     width: 18,
@@ -262,7 +277,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#d1d5db",
     borderRadius: 4,
-    marginRight: 8,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
@@ -276,14 +290,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  checkboxLabel: {
+  termsTextContainer: {
+    flex: 1,
+  },
+  termsText: {
     fontSize: 14,
     color: "#374151",
+    lineHeight: 20,
   },
-  forgotPassword: {
-    fontSize: 14,
-    color: PRIMARY_COLOR,
-    fontWeight: "500",
+  termsLink: {
+    fontWeight: "700",
+    color: "#111827",
   },
   button: {
     backgroundColor: PRIMARY_COLOR,
@@ -300,16 +317,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  registerContainer: {
+  loginContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
   },
-  registerText: {
+  loginText: {
     fontSize: 14,
     color: "#6b7280",
   },
-  registerLink: {
+  loginLink: {
     fontSize: 14,
     color: PRIMARY_COLOR,
     fontWeight: "600",

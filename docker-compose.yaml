@@ -47,6 +47,11 @@ services:
       JWT_REFRESH_EXPIRES_IN: 7d
     ports:
       - "4000:4000"
+    volumes:
+      # Mount source code for development (optional - uncomment if you want hot reload)
+      # - ./backend/src:/app/src:ro
+      # Mount dist folder to persist compiled code
+      - ./backend/dist:/app/dist
     depends_on:
       postgres:
         condition: service_healthy

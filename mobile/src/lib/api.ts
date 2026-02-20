@@ -1,8 +1,29 @@
 import axios, { type AxiosInstance } from "axios";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import type { ApiError } from "@/types/api";
 
-const baseURL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:4000/api/v1";
+// Get base URL from environment or use platform-specific defaults
+const getBaseURL = (): string => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  // Android emulator uses 10.0.2.2 to access host machine's localhost
+  if (Platform.OS === "android") {
+    return "http://10.0.2.2:4000/api/v1";
+  }
+  
+  // iOS simulator and web can use localhost
+  return "http://localhost:4000/api/v1";
+};
+
+const baseURL = getBaseURL();
+
+// Log the API URL being used (helpful for debugging)
+if (__DEV__) {
+  console.log(`[API] Using base URL: ${baseURL}`);
+}
 
 const TOKEN_KEY = "accessToken";
 const REFRESH_KEY = "refreshToken";
@@ -52,9 +73,27 @@ api.interceptors.response.use(
 );
 
 export function getApiError(err: unknown): string {
-  const data = (err as { response?: { data?: ApiError } })?.response?.data;
-  if (data && !data.success && data.error) return data.error.message;
-  return (err as Error)?.message || "Terjadi kesalahan";
+  const axiosError = err as { 
+    response?: { data?: ApiError }; 
+    code?: string;
+    message?: string;
+  };
+  
+  // Handle API error responses
+  if (axiosError.response?.data && !axiosError.response.data.success && axiosError.response.data.error) {
+    return axiosError.response.data.error.message;
+  }
+  
+  // Handle network errors
+  if (axiosError.code === "ECONNREFUSED" || axiosError.code === "ERR_NETWORK" || axiosError.message?.includes("Network Error")) {
+    return `Tidak dapat terhubung ke server. Pastikan backend berjalan di ${baseURL.replace("/api/v1", "")}`;
+  }
+  
+  if (axiosError.code === "ETIMEDOUT") {
+    return "Request timeout. Periksa koneksi internet Anda.";
+  }
+  
+  return axiosError.message || "Terjadi kesalahan";
 }
 
 export async function setTokens(access: string, refresh: string): Promise<void> {

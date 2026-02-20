@@ -19,15 +19,27 @@ export default function DashboardLayout({
   const logout = useAuthStore((s) => s.logout);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
+  // Set mounted flag after component mounts (client-side only)
   useEffect(() => {
-    if (accessToken === null && typeof window !== "undefined") {
-      const stored = localStorage.getItem("accessToken");
-      if (!stored) router.replace("/login");
+    setMounted(true);
+  }, []);
+
+  // Check authentication on mount
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const stored = localStorage.getItem("accessToken");
+    if (!stored && accessToken === null) {
+      router.replace("/login");
+      return;
     }
-  }, [accessToken, router]);
+  }, [mounted, accessToken, router]);
 
   useEffect(() => {
+    if (!mounted) return;
+    
     const fetchCurrentUser = async () => {
       try {
         // Get first user from list as current user (in real app, you'd have a /me endpoint)
@@ -44,25 +56,27 @@ export default function DashboardLayout({
       }
     };
 
-    if (accessToken || localStorage.getItem("accessToken")) {
+    const stored = localStorage.getItem("accessToken");
+    if (accessToken || stored) {
       fetchCurrentUser();
+    } else {
+      setLoading(false);
     }
-  }, [accessToken]);
+  }, [mounted, accessToken]);
 
   const handleLogout = () => {
     logout();
     router.replace("/login");
   };
 
-  if (accessToken === null && typeof window !== "undefined") {
-    const stored = localStorage.getItem("accessToken");
-    if (!stored) {
-      return (
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-pulse text-slate-500">Memuat...</div>
-        </div>
-      );
-    }
+  // Show loading state while mounting or fetching user
+  // This ensures consistent render between server and client
+  if (!mounted || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse text-slate-500">Memuat...</div>
+      </div>
+    );
   }
 
   // Extract first and last name from user name
